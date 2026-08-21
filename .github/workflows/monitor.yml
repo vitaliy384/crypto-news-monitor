@@ -1,9 +1,9 @@
 name: Crypto News Monitor
 
 on:
-schedule:
-   -cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'
-workflow_dispatch:
+  schedule:
+    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'
+  workflow_dispatch:
 
 jobs:
   monitor:
@@ -13,24 +13,20 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
       - name: Run monitor
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: python monitor.py
-
       - name: Commit updated processed_news.json
         run: |
           git config user.name "github-actions[bot]"
