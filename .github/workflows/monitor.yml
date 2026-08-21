@@ -1,20 +1,18 @@
 name: Crypto News Monitor
 
 on:
-  push:
-    branches: [ main ]
   schedule:
-    - cron: '5 * * * *'   # каждые 5 минут, но сейчас мы просто добавили push
-  workflow_dispatch:      # оставляем для ручного запуска
+    - cron: '*/5 * * * *'     # каждые 5 минут для теста
+  workflow_dispatch:          # ручной запуск
 
 jobs:
   monitor:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
@@ -22,7 +20,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Restore processed_news.json cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: processed_news.json
           key: processed-news-${{ github.run_id }}
@@ -37,7 +35,7 @@ jobs:
         run: python monitor.py
 
       - name: Save processed_news.json for next runs
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: processed_news.json
           key: processed-news-${{ github.run_id }}
