@@ -23,14 +23,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Check environment
-        run: |
-          echo "Workflow started"
-          echo "Python version:"
-          python --version
-          echo "Current UTC time:"
-          date -u
-
       - name: Run monitor
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
