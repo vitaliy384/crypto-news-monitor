@@ -1,9 +1,9 @@
 name: Crypto News Monitor
 
 on:
-  schedule:
-    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'   # UTC-время, см. пояснение ниже
-  workflow_dispatch:
+schedule:
+   -cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'
+workflow_dispatch:
 
 jobs:
   monitor:
