@@ -2,14 +2,14 @@ name: Crypto News Monitor
 
 on:
   schedule:
-    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'
-      timezone: 'Europe/Kyiv'
+    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'   # UTC-время, см. пояснение ниже
   workflow_dispatch:
 
 jobs:
   monitor:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write   # нужно, чтобы коммитить обновлённый processed_news.json обратно
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,3 +30,11 @@ jobs:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: python monitor.py
+
+      - name: Commit updated processed_news.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add processed_news.json
+          git diff --staged --quiet || git commit -m "Update processed news db [skip ci]"
+          git push
