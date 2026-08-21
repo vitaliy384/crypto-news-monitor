@@ -2,7 +2,7 @@ name: Crypto News Monitor
 
 on:
   schedule:
-    - cron: '*/30 * * * *'   # каждые 30 минут
+       - cron: '0 * * * *'  # каждые 30 минут
   workflow_dispatch:         # кнопка для ручного запуска
 
 jobs:
