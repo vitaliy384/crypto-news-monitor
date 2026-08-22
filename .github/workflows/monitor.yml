@@ -5,11 +5,15 @@ on:
     - cron: '0 * * * *'
   workflow_dispatch:
 
+concurrency:
+  group: crypto-news-monitor
+  cancel-in-progress: false
+
 jobs:
   monitor:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # нужно, чтобы коммитить обновлённый processed_news.json обратно
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
