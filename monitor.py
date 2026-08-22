@@ -213,22 +213,24 @@ class NewsMonitor:
             return False
         return any(kw in text for kw in self.important_keywords)
  
-    def _process_entry(self, entry) -> None:
+    def _process_entry(self, entry) -> bool:
+        """Обрабатывает одну запись. Возвращает True, если был реальный
+        вызов DeepSeek API (и, значит, нужна пауза перед следующим запросом)."""
         link = entry.get("link", "")
         if not link:
-            return
+            return False
         if link in self.processed_urls:
-            return
+            return False
         self.processed_urls.add(link)
         title = entry.title
         summary = entry.get("summary", "")
         if not self._is_potentially_important(title, summary):
             logger.info(f"Пропуск (шум): {title[:50]}...")
-            return
+            return False
         logger.info(f"Анализируем: {title[:60]}...")
         data = self.analyzer.analyze(title, summary)
         if not data:
-            return
+            return True  # вызов API был (пусть и неудачный) — пауза всё равно нужна
         score = data.get('score', 0)
         sentiment = data.get('sentiment', 'Neutral')
         logger.info(f"Оценка: {score}/10 | Тренд: {sentiment}")
@@ -244,6 +246,7 @@ class NewsMonitor:
                 logger.info("Сообщение доставлено в Telegram")
         else:
             logger.info(f"Оценка {score} < 6 – пропущено")
+        return True
  
     def run_once(self) -> None:
         new_urls_found = False
@@ -256,9 +259,10 @@ class NewsMonitor:
                 if not feed.entries:
                     continue
                 for entry in feed.entries[:self.entries_per_feed]:
-                    self._process_entry(entry)
+                    api_was_called = self._process_entry(entry)
                     new_urls_found = True
-                    time.sleep(self.delay)
+                    if api_was_called:
+                        time.sleep(self.delay)
             except Exception as e:
                 logger.error(f"Ошибка ленты {feed_url}: {e}")
         if new_urls_found:
@@ -279,4 +283,5 @@ def main():
  
 if __name__ == "__main__":
     main()
+ 
  
