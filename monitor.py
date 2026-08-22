@@ -1,4 +1,3 @@
-тор · PY
 import sys
 import os
 import json
