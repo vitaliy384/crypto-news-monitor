@@ -76,6 +76,13 @@ RSS_FEEDS = [
     "https://cointelegraph.com/rss",
     "https://www.coindesk.com/arc/outboundfeeds/rss/",
     "https://www.theblock.co/rss.xml",             # институциональные/регуляторные крипто-новости
+ 
+    # Официальные источники — дополняют быстрые ленты для плановых
+    # событий (решения по ставке, официальные ETF-решения), где
+    # официальный пресс-релиз публикуется одновременно с событием.
+    "https://www.federalreserve.gov/feeds/press_all.xml",             # все пресс-релизы ФРС
+    "https://www.federalreserve.gov/feeds/speeches_and_testimony.xml", # речи и показания перед Конгрессом
+    "https://www.sec.gov/news/pressreleases.rss",                      # официальные пресс-релизы SEC
 ]
  
 # ========== ЛОГИРОВАНИЕ ==========
@@ -283,5 +290,4 @@ def main():
  
 if __name__ == "__main__":
     main()
- 
  
