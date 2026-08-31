@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import time
+import re
 import logging
 from typing import Set, Optional, Dict, Any
 from pathlib import Path
@@ -101,22 +102,47 @@ class DatabaseHandler:
     def __init__(self, db_path: str):
         self.db_path = Path(db_path)
  
-    def load(self) -> Set[str]:
+    def load(self) -> Dict[str, Set[str]]:
+        """Возвращает {"urls": set(...), "titles": set(...)}.
+        Поддерживает старый формат файла (просто список URL) для обратной совместимости."""
         if self.db_path.exists():
             try:
                 with open(self.db_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    return set(data) if isinstance(data, list) else set()
+                    if isinstance(data, list):
+                        # старый формат — только URL, заголовков ещё не было
+                        return {"urls": set(data), "titles": set()}
+                    if isinstance(data, dict):
+                        return {
+                            "urls": set(data.get("urls", [])),
+                            "titles": set(data.get("titles", [])),
+                        }
             except Exception as e:
                 logger.error(f"Ошибка чтения базы: {e}")
-        return set()
+        return {"urls": set(), "titles": set()}
  
-    def save(self, urls: Set[str], limit: int = 500) -> None:
+    def save(self, urls: Set[str], titles: Set[str], limit: int = 500) -> None:
         try:
             with open(self.db_path, "w", encoding="utf-8") as f:
-                json.dump(list(urls)[-limit:], f, ensure_ascii=False, indent=2)
+                json.dump(
+                    {
+                        "urls": list(urls)[-limit:],
+                        "titles": list(titles)[-limit:],
+                    },
+                    f, ensure_ascii=False, indent=2,
+                )
         except Exception as e:
             logger.error(f"Ошибка сохранения базы: {e}")
+ 
+def normalize_title(title: str) -> str:
+    """Приводит заголовок к виду для сравнения: нижний регистр, без пунктуации
+    и лишних пробелов — чтобы ловить republish той же новости с чуть другой
+    версткой заголовка."""
+    text = title.lower()
+    text = re.sub(r"[^\w\s]", "", text)  # убрать пунктуацию
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+ 
  
 class TelegramSender:
     def __init__(self, token: str, chat_id: str):
@@ -212,7 +238,9 @@ class NewsMonitor:
         self.analyzer = analyzer
         self.entries_per_feed = entries_per_feed
         self.delay = delay
-        self.processed_urls = self.db.load()
+        db_data = self.db.load()
+        self.processed_urls = db_data["urls"]
+        self.processed_titles = db_data["titles"]
  
     def _is_potentially_important(self, title: str, summary: str) -> bool:
         text = f"{title} {summary}".lower()
@@ -228,8 +256,19 @@ class NewsMonitor:
             return False
         if link in self.processed_urls:
             return False
-        self.processed_urls.add(link)
+ 
         title = entry.title
+        norm_title = normalize_title(title)
+        if norm_title and norm_title in self.processed_titles:
+            # та же новость уже встречалась под другим URL (republish
+            # в другой ленте того же или другого сайта)
+            self.processed_urls.add(link)
+            logger.info(f"Пропуск (дубликат заголовка): {title[:50]}...")
+            return False
+ 
+        self.processed_urls.add(link)
+        if norm_title:
+            self.processed_titles.add(norm_title)
         summary = entry.get("summary", "")
         if not self._is_potentially_important(title, summary):
             logger.info(f"Пропуск (шум): {title[:50]}...")
@@ -273,7 +312,7 @@ class NewsMonitor:
             except Exception as e:
                 logger.error(f"Ошибка ленты {feed_url}: {e}")
         if new_urls_found:
-            self.db.save(self.processed_urls)
+            self.db.save(self.processed_urls, self.processed_titles)
             logger.info("База обновлена")
  
 def main():
